@@ -1,0 +1,9 @@
+configparser>=3.3.0
+ruamel.yaml>=0.15.88
+ipaddress
+ansible>=2.8.0
+jinja2>=2.9.6
+netaddr
+pbr>=1.6
+hvac
+jmespath

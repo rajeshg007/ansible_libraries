@@ -1,0 +1,54 @@
+- name: Create a sandbox instance
+  hosts: localhost
+  gather_facts: False
+  pre_tasks:
+    - include_vars: "group_vars/all"
+      no_log: True
+    - name: get current folder location
+      shell: pwd
+      register: wd
+    - set_fact:
+        work_dir: "{{wd.stdout}}"
+  tasks:
+    - debug:
+        msg: "{{instance_type}}"
+    - name: Launch instance
+      ec2:
+         key_name: "{{ keypair }}"
+         group: "{{ security_group }}"
+         instance_type: "{{ instance_type }}"
+         image: "{{ image }}"
+         count: "{{count | default(1)}}"
+         wait: true
+         spot_price: 0.8
+         region: "{{ region }}"
+         vpc_subnet_id: {{subnet}}
+         assign_public_ip: yes
+         instance_initiated_shutdown_behavior: terminate
+         volumes:
+          - device_name: /dev/xvda
+            volume_type: gp2
+            volume_size: 15
+      register: ec2
+
+    - name: add to inventory
+      add_host:
+        hostname: "{{ item.public_ip }}"
+        groupname: newlylaunched
+      with_items: "{{ ec2.instances }}"
+
+- hosts: newlylaunched
+  become: yes
+  become_user: root
+  gather_facts: False
+  tasks:
+    - name: check if we can make ssh connection
+      local_action: shell ssh ubuntu@{{ inventory_hostname }} "echo success" 
+      become: no
+      register: ssh_started
+      until: ssh_started.stdout.find("success") != -1
+      retries: 20 
+      delay: 10
+    - name: Install Python-apt to pull in Python
+      become: no
+      local_action: shell ssh ubuntu@{{ inventory_hostname }} sudo apt update && sudo apt install --no-install-recommends -y python-apt

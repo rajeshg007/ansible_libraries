@@ -1,0 +1,5 @@
+keypair: 'gudur'
+instance_type: "{{ type | default('t3.small')}}"
+security_group: 'default'
+image: ami-0a313d6098716f372
+region: us-east-1
